@@ -1,0 +1,8 @@
+{
+  "name": "systematic-debugging",
+  "description": "Depuração sistemática: exige investigação de causa-raiz antes de qualquer correção. Herdada do plugin superpowers (obra), licença MIT.",
+  "version": "1.0.0",
+  "author": {
+    "name": "superpowers (obra) — empacotado no marketplace por Caio Kohn"
+  }
+}

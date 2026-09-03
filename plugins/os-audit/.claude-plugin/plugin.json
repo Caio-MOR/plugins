@@ -1,0 +1,8 @@
+{
+  "name": "os-audit",
+  "description": "Auditoria read-only de drift, desatualização e organização de um projeto Claude Code (AIOS): índices desatualizados, roteamento apontando para nada, pastas duplicadas.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Caio Kohn"
+  }
+}

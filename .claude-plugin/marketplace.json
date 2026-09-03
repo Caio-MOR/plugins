@@ -1,0 +1,27 @@
+{
+  "name": "caio-mor",
+  "owner": {
+    "name": "Caio Kohn"
+  },
+  "description": "Marketplace de plugins do Claude Code (skills de processo) da conta Caio-MOR.",
+  "plugins": [
+    {
+      "name": "tlc-spec-driven",
+      "source": "./plugins/tlc-spec-driven",
+      "description": "Planejamento e implementação de features guiados por spec (Specify/Design/Tasks/Execute), com gates deterministicos e Verificador independente. Skill de terceiro (Felipe Rodrigues, github.com/felipfr) sob CC-BY-4.0.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "systematic-debugging",
+      "source": "./plugins/systematic-debugging",
+      "description": "Depuração sistemática: causa-raiz antes de qualquer correção. Herdada do plugin superpowers (obra), MIT.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "os-audit",
+      "source": "./plugins/os-audit",
+      "description": "Auditoria read-only de drift, desatualização e organização de um projeto Claude Code (AIOS).",
+      "version": "1.0.0"
+    }
+  ]
+}

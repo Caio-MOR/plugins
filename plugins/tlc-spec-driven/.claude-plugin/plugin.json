@@ -1,0 +1,8 @@
+{
+  "name": "tlc-spec-driven",
+  "description": "Planejamento e implementação de features com 4 fases adaptativas (Specify, Design, Tasks, Execute), gates deterministicos em Python e Verificador independente. Skill de terceiro por Felipe Rodrigues (github.com/felipfr), licença CC-BY-4.0.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Felipe Rodrigues (github.com/felipfr) — empacotado no marketplace por Caio Kohn"
+  }
+}
