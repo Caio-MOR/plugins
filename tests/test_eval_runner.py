@@ -258,3 +258,32 @@ def test_main_com_todos_runs_em_erro_de_infra_retorna_2(monkeypatch, tmp_path):
 def test_montar_comando_sem_plugin_dir_no_modo_skills():
     cmd = eval_runner.montar_comando("claude", "oi", 3, None)
     assert "--plugin-dir" not in cmd
+
+
+# ---------------------------------------------------------------------------
+# Contrato da cópia canônica (T1/SYNC-02)
+
+
+def test_runner_versao_e_semantica():
+    """`RUNNER_VERSAO` existe e é `major.minor.patch`.
+
+    A constante é o que diz ao espelho do `template-cockpit` que a cópia mudou.
+    String livre não serve: o procedimento de propagação lê a versão para decidir
+    se a mudança é interna, de saída ou de contrato.
+    """
+    assert re.fullmatch(r"\d+\.\d+\.\d+", eval_runner.RUNNER_VERSAO), (
+        f"RUNNER_VERSAO = {eval_runner.RUNNER_VERSAO!r} não é major.minor.patch"
+    )
+
+
+def test_docstring_declara_copia_canonica_e_nomeia_o_espelho():
+    """A docstring declara esta cópia como canônica e nomeia o repo que a espelha.
+
+    Sem isso, quem abre o arquivo no `template-cockpit` não tem como saber que
+    editar ali é editar a cópia errada.
+    """
+    doc = eval_runner.__doc__ or ""
+    assert "canônica" in doc, "docstring não declara a cópia como canônica"
+    assert "Caio-MOR/template-cockpit" in doc, (
+        "docstring não nomeia o repo espelho com owner/nome"
+    )
