@@ -11,6 +11,24 @@ python tools/validar_plugins.py   # JSON do marketplace/plugins, frontmatter das
 python -m pytest -q               # suíte do validador
 ```
 
+## Evals
+
+Cada plugin tem uma suíte de disparo em `plugins/<nome>/evals/` no **formato oficial**
+de `claude plugin eval` (`prompt.md` + `graders/`) — hoje **early access habilitado
+por organização**, então o subcomando ainda não roda nesta instalação. Enquanto isso,
+`tools/eval_runner.py` (stdlib + PyYAML) lê o mesmo formato e executa via `claude -p`:
+
+```bash
+python tools/eval_runner.py --all                      # todos os plugins
+python tools/eval_runner.py --plugin os-audit           # um só
+python tools/eval_runner.py --all --json resultado.json # placar + JSON
+```
+
+Exit 0 = todo caso disparou (ou não disparou) como esperado; 1 = alguma `description`
+precisa de ajuste; 2 = `claude` não encontrado ou sem login. Detalhe do formato, grafo
+do runner e a prova de isolamento (o CLI não roda skills do usuário nem de outro
+plugin) em `docs/evals.md`.
+
 Instalar num projeto Claude Code (ver "Como registrar" e "Como instalar" abaixo):
 
 ```

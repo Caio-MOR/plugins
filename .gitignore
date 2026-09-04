@@ -17,6 +17,7 @@
 !/plugins/
 !/tools/
 !/tests/
+!/docs/
 
 # Em qualquer profundidade
 .env
