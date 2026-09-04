@@ -1,0 +1,47 @@
+name: validar
+
+# Gate mecânico do marketplace: JSON do marketplace/plugins, consistência name/version,
+# frontmatter de cada SKILL.md e ausência de rastro de máquina, em todo push e PR.
+#
+# Matriz enxuta: gate que só roda num SO é gate presumido. ubuntu sempre; windows só em
+# PR (é onde um bashismo ou um `\` de caminho quebraria e ubuntu não pegaria).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validar-plugins:
+    name: validar-plugins
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Dependências (só requirements.txt)
+        run: pip install -r requirements.txt
+
+      - name: Validador do marketplace
+        run: python tools/validar_plugins.py .
+
+      - name: Suíte de testes
+        run: python -m pytest -q
