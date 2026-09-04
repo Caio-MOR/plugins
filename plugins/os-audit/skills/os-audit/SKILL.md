@@ -2,6 +2,7 @@
 name: os-audit
 description: Use when someone asks to run an OS audit, check their AIOS for stale or outdated data, verify routing points at things that actually exist, find duplicate or bloated folders, clean up or organize their project, check for context failure modes (poisoning, bloat, confusion, clash), or says "os audit", "is my setup stale", "run a data audit", "my project root is a mess", or "my agent keeps missing things that are there". Read-only drift, freshness, and organization audit of the current project.
 argument-hint: "[optional: a subfolder to scope the audit to]"
+formato: cadeia
 ---
 
 # OS Audit — is your AIOS still true?
