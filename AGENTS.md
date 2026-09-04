@@ -19,6 +19,7 @@ Como o repo é público e instalado por pessoas fora do time (leigos, em VMs Win
 | Regras de processo do próprio repo (portabilidade, etc.) | `.claude/rules/` |
 | Sub-agente verificador (autor ≠ verificador) | `.claude/agents/verificador.md` |
 | Decisões e lições deste repo | `.specs/STATE.md`, `.specs/LESSONS.md` |
+| Evals de comportamento de uma skill (formato oficial + runner de bolso) | `plugins/<nome>/evals/` (casos), `tools/eval_runner.py` (runner), `docs/evals.md` (grafo + prova de isolamento) |
 | Validador do marketplace (JSON, frontmatter, rastro de máquina) | `tools/validar_plugins.py` |
 | Teste do validador | `tests/test_validar_plugins.py` |
 | CI (validação + varredura de segredos) | `.github/workflows/validar.yml`, `.github/workflows/gitleaks.yml` |
@@ -36,6 +37,7 @@ Como o repo é público e instalado por pessoas fora do time (leigos, em VMs Win
 - `python tools/validar_plugins.py` — valida JSON do marketplace e de cada plugin, consistência name/version, frontmatter de cada `SKILL.md` e ausência de caminho de máquina (`/Users/`, `/home/`) em arquivo versionado.
 - `python -m pytest -q` — suíte em `tests/`.
 - Ambos rodam no CI em todo push e PR (`.github/workflows/validar.yml`, matriz ubuntu sempre + windows em PR) e a varredura de segredos roda em `.github/workflows/gitleaks.yml`.
+- **Evals de comportamento** (`plugins/<nome>/evals/`, formato oficial de `claude plugin eval`): `python tools/eval_runner.py --all` roda a suíte de disparo via `claude -p` (login de subscription, não API). Gate **local**, não CI — sem credencial no CI. `tests/test_evals_estrutura.py` (estrutura, sem LLM) e `tests/test_eval_runner.py` (parser + graders com fixtures sintéticas) esses sim rodam no CI. **Mudou a `description` de uma skill → rode `python tools/eval_runner.py --plugin <nome>` antes da PR e cole o placar** (comando + data) — é o que prova que a description ainda dispara certo. Detalhe, grafo e a prova de isolamento em `docs/evals.md`.
 
 ## Hard Rules (disciplina inegociável)
 

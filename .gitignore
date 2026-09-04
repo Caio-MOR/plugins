@@ -17,6 +17,7 @@
 !/plugins/
 !/tools/
 !/tests/
+!/docs/
 
 # Em qualquer profundidade
 .env
@@ -27,3 +28,7 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 .tmp/
+
+# Evals: casos versionados (formato oficial), resultado de rodada não
+!/plugins/*/evals/
+**/evals/results/
