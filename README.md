@@ -1,6 +1,22 @@
 # caio-mor — marketplace de plugins do Claude Code
 
-Marketplace privado com skills de **processo** (não de domínio de negócio) para uso em qualquer repo criado a partir do `template-cockpit` ou de outro projeto Claude Code. Cada skill é um plugin independente, para poder ligar/desligar um sem afetar os outros.
+Marketplace **público** (`gh repo view Caio-MOR/plugins --json visibility` confirma) com skills de **processo** (não de domínio de negócio) para uso em qualquer repo criado a partir do `template-cockpit` ou de outro projeto Claude Code — inclusive por gente fora do time, em VM Windows ou Linux. Cada skill é um plugin independente, para poder ligar/desligar um sem afetar os outros.
+
+## Como rodar (validar localmente)
+
+Só biblioteca padrão do Python 3.12+; roda em Windows, Linux e Mac.
+
+```bash
+python tools/validar_plugins.py   # JSON do marketplace/plugins, frontmatter das SKILL.md, rastro de máquina
+python -m pytest -q               # suíte do validador
+```
+
+Instalar num projeto Claude Code (ver "Como registrar" e "Como instalar" abaixo):
+
+```
+claude plugin marketplace add Caio-MOR/plugins
+claude plugin install tlc-spec-driven@caio-mor
+```
 
 ## Plugins
 
