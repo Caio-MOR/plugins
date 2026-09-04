@@ -103,6 +103,32 @@ def test_parse_caso_com_runs_nao_inteiro_reprova(tmp_path):
         eval_runner.parse_caso(case_dir)
 
 
+def test_parse_caso_com_frontmatter_yaml_invalido_reprova(tmp_path):
+    """YAML sintaticamente inválido reprova, em vez de virar string em silêncio.
+
+    É o motivo de esta cópia usar `yaml.safe_load`. O parser artesanal que existia
+    lia `tags: [positivo` (colchete não fechado) como a string literal "[positivo"
+    e seguia adiante: caso mal formado passando por válido, no caminho de
+    verificação, que é o pior lugar possível para passivo silencioso.
+
+    A verificação da Fase 1 mostrou que trocar `safe_load` de volta pelo parser
+    permissivo mantinha a suíte inteira verde. Este teste é o que mata esse mutante.
+    """
+    case_dir = tmp_path / "caso-w"
+    (case_dir / "graders").mkdir(parents=True)
+    (case_dir / "prompt.md").write_text(
+        "---\nname: caso-w\ntags: [positivo\nruns: 3\nmax_turns: 3\n"
+        "timeout_seconds: 180\n---\n\nprompt\n",
+        encoding="utf-8",
+    )
+    (case_dir / "graders" / "disparo.md").write_text(
+        "---\ntype: tool_used\ntool: Skill\ninput_match: 'x'\nmin: 1\n---\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(eval_runner.ErroCasoMalFormado, match="YAML inválido"):
+        eval_runner.parse_caso(case_dir)
+
+
 def test_parse_caso_com_regex_incompilavel_reprova(tmp_path):
     case_dir = tmp_path / "caso-w"
     (case_dir / "graders").mkdir(parents=True)
@@ -283,7 +309,11 @@ def test_docstring_declara_copia_canonica_e_nomeia_o_espelho():
     editar ali é editar a cópia errada.
     """
     doc = eval_runner.__doc__ or ""
-    assert "canônica" in doc, "docstring não declara a cópia como canônica"
-    assert "Caio-MOR/template-cockpit" in doc, (
-        "docstring não nomeia o repo espelho com owner/nome"
+    # Rótulo do contrato, não a palavra solta: "canônica" aparece várias vezes na
+    # docstring, então `"canônica" in doc` continuaria verde sem o contrato.
+    assert "**Canônica**: `Caio-MOR/plugins`" in doc, (
+        "docstring não rotula esta cópia como a canônica, com owner/repo"
+    )
+    assert "**Espelho**: `Caio-MOR/template-cockpit`" in doc, (
+        "docstring não rotula o espelho com owner/repo"
     )
