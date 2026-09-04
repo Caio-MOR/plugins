@@ -106,6 +106,8 @@ Use the bisection script `find-polluter.sh` in this directory:
 
 Runs tests one-by-one, stops at first polluter. See script for usage.
 
+(Optional helper for Node/npm projects only — it shells out to `npm test`. On Windows it needs Git Bash to run; it is not required for the technique itself, which works without it.)
+
 ## Real Example: Empty projectDir
 
 **Symptom:** `.git` created in `packages/core/` (source code)
