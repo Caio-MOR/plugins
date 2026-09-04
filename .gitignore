@@ -1,2 +1,29 @@
+# Allowlist (nega-tudo): o git versiona o que se LIBERA, não o que se esquece de negar.
+/*
+
+# Raiz — um a um
+!/.gitignore
+!/.gitattributes
+!/CLAUDE.md
+!/AGENTS.md
+!/README.md
+!/requirements.txt
+
+# Pastas versionadas
+!/.github/
+!/.claude/
+!/.claude-plugin/
+!/.specs/
+!/plugins/
+!/tools/
+!/tests/
+
+# Em qualquer profundidade
+.env
+.env.*
+.claude/settings.local.json
 __pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
 .tmp/
