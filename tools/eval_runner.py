@@ -17,12 +17,18 @@ Cobre só o subconjunto de graders usado neste repo: `tool_used`, `regex`, `file
 
 ## Cópia canônica
 
-Este arquivo é a **cópia canônica** do runner. O repo `Caio-MOR/template-cockpit`
-carrega uma cópia byte-idêntica em `tools/eval_runner.py`, e lá um gate compara o
-`sha256` do arquivo com uma constante pinada. Consequência: mudança aqui não está
-concluída enquanto não for propagada para o espelho e o `sha256` pinado de lá não for
-recalculado, no mesmo PR. `RUNNER_VERSAO` sobe junto — patch para correção interna,
-minor para grader ou campo de saída novo, major para mudança de contrato de saída.
+Duas cópias byte-idênticas deste arquivo existem, e este texto é uma delas: por isso
+ele nomeia os dois lados por caminho, em vez de dizer "aqui" ou "lá".
+
+- **Canônica**: `Caio-MOR/plugins` → `tools/eval_runner.py`. É onde se edita.
+- **Espelho**: `Caio-MOR/template-cockpit` → `tools/eval_runner.py`. Lá um gate compara
+  o `sha256` do arquivo com uma constante pinada, então editar o espelho reprova o
+  gate — que é o efeito desejado.
+
+Consequência: mudança na canônica não está concluída enquanto não for propagada para o
+espelho e o `sha256` pinado de lá não for recalculado, no mesmo PR. `RUNNER_VERSAO`
+sobe junto — patch para correção interna, minor para grader ou campo de saída novo,
+major para mudança de contrato de saída.
 
 ## Dois modos de descoberta
 
