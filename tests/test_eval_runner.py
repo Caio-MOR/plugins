@@ -103,6 +103,32 @@ def test_parse_caso_com_runs_nao_inteiro_reprova(tmp_path):
         eval_runner.parse_caso(case_dir)
 
 
+def test_parse_caso_com_frontmatter_yaml_invalido_reprova(tmp_path):
+    """YAML sintaticamente inválido reprova, em vez de virar string em silêncio.
+
+    É o motivo de esta cópia usar `yaml.safe_load`. O parser artesanal que existia
+    lia `tags: [positivo` (colchete não fechado) como a string literal "[positivo"
+    e seguia adiante: caso mal formado passando por válido, no caminho de
+    verificação, que é o pior lugar possível para passivo silencioso.
+
+    A verificação da Fase 1 mostrou que trocar `safe_load` de volta pelo parser
+    permissivo mantinha a suíte inteira verde. Este teste é o que mata esse mutante.
+    """
+    case_dir = tmp_path / "caso-w"
+    (case_dir / "graders").mkdir(parents=True)
+    (case_dir / "prompt.md").write_text(
+        "---\nname: caso-w\ntags: [positivo\nruns: 3\nmax_turns: 3\n"
+        "timeout_seconds: 180\n---\n\nprompt\n",
+        encoding="utf-8",
+    )
+    (case_dir / "graders" / "disparo.md").write_text(
+        "---\ntype: tool_used\ntool: Skill\ninput_match: 'x'\nmin: 1\n---\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(eval_runner.ErroCasoMalFormado, match="YAML inválido"):
+        eval_runner.parse_caso(case_dir)
+
+
 def test_parse_caso_com_regex_incompilavel_reprova(tmp_path):
     case_dir = tmp_path / "caso-w"
     (case_dir / "graders").mkdir(parents=True)
@@ -258,3 +284,36 @@ def test_main_com_todos_runs_em_erro_de_infra_retorna_2(monkeypatch, tmp_path):
 def test_montar_comando_sem_plugin_dir_no_modo_skills():
     cmd = eval_runner.montar_comando("claude", "oi", 3, None)
     assert "--plugin-dir" not in cmd
+
+
+# ---------------------------------------------------------------------------
+# Contrato da cópia canônica (T1/SYNC-02)
+
+
+def test_runner_versao_e_semantica():
+    """`RUNNER_VERSAO` existe e é `major.minor.patch`.
+
+    A constante é o que diz ao espelho do `template-cockpit` que a cópia mudou.
+    String livre não serve: o procedimento de propagação lê a versão para decidir
+    se a mudança é interna, de saída ou de contrato.
+    """
+    assert re.fullmatch(r"\d+\.\d+\.\d+", eval_runner.RUNNER_VERSAO), (
+        f"RUNNER_VERSAO = {eval_runner.RUNNER_VERSAO!r} não é major.minor.patch"
+    )
+
+
+def test_docstring_declara_copia_canonica_e_nomeia_o_espelho():
+    """A docstring declara esta cópia como canônica e nomeia o repo que a espelha.
+
+    Sem isso, quem abre o arquivo no `template-cockpit` não tem como saber que
+    editar ali é editar a cópia errada.
+    """
+    doc = eval_runner.__doc__ or ""
+    # Rótulo do contrato, não a palavra solta: "canônica" aparece várias vezes na
+    # docstring, então `"canônica" in doc` continuaria verde sem o contrato.
+    assert "**Canônica**: `Caio-MOR/plugins`" in doc, (
+        "docstring não rotula esta cópia como a canônica, com owner/repo"
+    )
+    assert "**Espelho**: `Caio-MOR/template-cockpit`" in doc, (
+        "docstring não rotula o espelho com owner/repo"
+    )

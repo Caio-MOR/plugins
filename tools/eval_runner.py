@@ -1,16 +1,34 @@
 #!/usr/bin/env python3
 """Runner de bolso para evals de comportamento (formato oficial de `claude plugin eval`).
 
-`claude plugin eval` é early access habilitado por organização e não existe nesta
-instalação (Claude Code 2.1.191). Os casos deste repo, porém, já são escritos no
-formato oficial (`evals/<caso>/prompt.md` + `graders/<nome>.md`) para rodarem sem
-alteração no dia em que a flag abrir. Este runner lê esse mesmo formato e executa via
-`claude -p` com login de subscription (regra da casa: automação LLM via subscription,
-não API direta) — sem nenhuma dependência externa, só a stdlib + PyYAML (já é
-dependência do `validar_plugins.py`).
+`claude plugin eval` existe no CLI (medido no 2.1.241) mas é early access habilitado
+por organização, e nesta conta responde `` `plugin eval` is currently in early access ``
+e sai. Os casos deste repo, porém, já são escritos no formato oficial
+(`evals/<caso>/prompt.md` + `graders/<nome>.md`) para rodarem sem alteração no dia em
+que a flag abrir. Reconferir o gate a cada `claude update`: `claude plugin eval` numa
+pasta vazia devolvendo `No eval cases found` significa habilitado.
+
+Este runner lê esse mesmo formato e executa via `claude -p` com login de subscription
+(regra da casa: automação LLM via subscription, não API direta) — sem nenhuma
+dependência externa, só a stdlib + PyYAML (já é dependência do `validar_plugins.py`).
 
 Cobre só o subconjunto de graders usado neste repo: `tool_used`, `regex`, `file_exists`.
 `llm` e `baseline` ficam para a ferramenta oficial.
+
+## Cópia canônica
+
+Duas cópias byte-idênticas deste arquivo existem, e este texto é uma delas: por isso
+ele nomeia os dois lados por caminho, em vez de dizer "aqui" ou "lá".
+
+- **Canônica**: `Caio-MOR/plugins` → `tools/eval_runner.py`. É onde se edita.
+- **Espelho**: `Caio-MOR/template-cockpit` → `tools/eval_runner.py`. Lá um gate compara
+  o `sha256` do arquivo com uma constante pinada, então editar o espelho reprova o
+  gate — que é o efeito desejado.
+
+Consequência: mudança na canônica não está concluída enquanto não for propagada para o
+espelho e o `sha256` pinado de lá não for recalculado, no mesmo PR. `RUNNER_VERSAO`
+sobe junto — patch para correção interna, minor para grader ou campo de saída novo,
+major para mudança de contrato de saída.
 
 ## Dois modos de descoberta
 
@@ -47,6 +65,7 @@ from pathlib import Path
 
 import yaml
 
+RUNNER_VERSAO = "1.0.0"  # ver "Cópia canônica" na docstring: sobe junto da propagação
 TETO_CASOS_INFRA_CONSECUTIVOS = 3  # loop-engineering: nunca insistir além disso
 RE_FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 MARCADORES_AUTH = ("not logged in", "authentication_failed", "please run /login")
