@@ -6,4 +6,4 @@ max_turns: 3
 timeout_seconds: 180
 ---
 
-Quero especificar uma feature nova antes de implementar, com tarefas atômicas e um jeito de verificar o trabalho no final.
+Quero "specify feature" na prática: uma feature nova antes de implementar, com tarefas atômicas e um jeito de checar o trabalho no final.
