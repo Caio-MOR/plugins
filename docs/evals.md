@@ -218,3 +218,22 @@ mutada bate literalmente com esse tema. Prova redonda de que o eval mede a
 `description`, não a sorte: description ruim tanto perde disparo que deveria ter
 quanto ganha disparo que não deveria. Revertido com `git checkout`; suíte completa
 confirmada 18/18 depois da reversão.
+
+## Bug do runner encontrado ao levar o eval pro template-cockpit (R17)
+
+Ao rodar o mesmo runner sobre `template-cockpit` (`--skills-dir .claude/skills`,
+2026-09-04), o caso `_exemplo-skill/positivo-modelo-minimo` reprovava 0/3 de forma
+**determinística** — diferente da flakiness normal (1/3, 2/3) vista acima. Raiz:
+o corpo do prompt estava quebrado em duas linhas no `.md` (só por legibilidade);
+`subprocess.run([...])` manda isso como uma única entrada de lista com um `\n`/`\r\n`
+no meio, e o CLI `claude` no Windows é um wrapper `.cmd` — newline embutido corta a
+linha de comando do batch e o processo sai com `returncode 0` **sem rodar nada**: sem
+transcrição, sem erro de auth, silêncio total. `tools/eval_runner.py`
+(`parse_frontmatter`) agora colapsa quebras de linha/espaços internos do corpo num
+único espaço antes de usar o prompt, nos dois repos (`plugins` e `template-cockpit`);
+também recupera com uma única re-tentativa interna um no-op espúrio do subprocess
+(`returncode 0` com stdout/stderr vazios) antes de declarar erro de infraestrutura.
+Teste de regressão: `test_parse_caso_colapsa_quebra_de_linha_do_corpo` (fixture
+sintética com `\r\n` no meio do corpo), nos dois repos. Os 18 casos deste repo já
+eram de uma linha só — o bug não reproduzia aqui, mas o parser fica robusto para
+qualquer caso futuro que quebre o prompt em várias linhas.
