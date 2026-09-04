@@ -73,6 +73,35 @@ def test_caminho_de_maquina_reprova(tmp_path: Path):
     assert any("caminho absoluto de máquina" in e for e in erros), erros
 
 
+def test_caminho_de_maquina_sem_barra_final_reprova(tmp_path: Path):
+    # Regressão: /Users/x ou /home/y no fim da linha (sem subpasta depois) também  # padrao-ouro:ignorar
+    # é rastro de máquina — a régua antiga exigia uma barra final e deixava passar.
+    nome = "skill-ok"
+    _skill_valida(tmp_path, nome)
+    _marketplace_valido(tmp_path, nome)
+    (tmp_path / "NOTAS.md").write_text(
+        "usuario: /Users/x\noutra maquina: /home/y\n", encoding="utf-8"  # padrao-ouro:ignorar
+    )
+
+    erros = validar_plugins.validar(tmp_path)
+    assert any("NOTAS.md:1" in e for e in erros), erros
+    assert any("NOTAS.md:2" in e for e in erros), erros
+
+
+def test_palavra_users_sem_barra_inicial_nao_reprova(tmp_path: Path):
+    """`docs/Users/guia.md` não é rastro de máquina: `Users` aqui é nome de pasta do
+    projeto, não a home de um usuário — a barra antes de `Users` não é a raiz."""
+    nome = "skill-ok"
+    _skill_valida(tmp_path, nome)
+    _marketplace_valido(tmp_path, nome)
+    (tmp_path / "NOTAS.md").write_text(
+        "ver docs/Users/guia.md para detalhes\n", encoding="utf-8"
+    )
+
+    erros = validar_plugins.validar(tmp_path)
+    assert not any("caminho absoluto de máquina" in e for e in erros), erros
+
+
 def test_marketplace_ausente_reprova(tmp_path: Path):
     erros = validar_plugins.validar(tmp_path)
     assert any("marketplace.json" in e and "não existe" in e for e in erros), erros

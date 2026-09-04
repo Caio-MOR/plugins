@@ -8,7 +8,7 @@ Este arquivo é a fonte única de instruções do repo, em formato multi-vendor 
 
 Marketplace **público** de plugins do Claude Code (`Caio-MOR/plugins`) com skills de **processo** (não de domínio de negócio), instaláveis em qualquer repositório Claude Code — não só no `template-cockpit`. Cada skill é um plugin independente, para poder ligar/desligar um sem afetar os outros.
 
-Como o repo é público e instalado por pessoas fora do time (leigos, em VMs Windows e Linux), **nenhum arquivo pode conter rastro de uma máquina específica**: caminho `/Users/...`, `/private/tmp/...`, `.DS_Store`, ou comando que só existe no macOS. É a regra de portabilidade em `.claude/rules/portabilidade.md`.
+Como o repo é público e instalado por pessoas fora do time (leigos, em VMs Windows e Linux), **nenhum arquivo pode conter rastro de uma máquina específica**: caminho `/Users/...`, `/private/tmp/...`, `.DS_Store`, ou comando que só existe no macOS. É a regra de portabilidade em `.claude/rules/portabilidade.md`. <!-- padrao-ouro:ignorar -->
 
 ## Estrutura de diretórios
 

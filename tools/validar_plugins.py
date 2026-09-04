@@ -30,8 +30,7 @@ TETO_GIT = 60  # segundos
 RE_FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---", re.DOTALL)
 RE_CAMINHO_MAQUINA = re.compile(
     r"(?i)[a-z]:[\\/]users[\\/]"        # unidade Windows + Users  # padrao-ouro:ignorar
-    r"|(?<![\w/])/Users/[A-Za-z0-9_.-]+/"  # home do macOS  # padrao-ouro:ignorar
-    r"|(?<![\w/])/home/[A-Za-z0-9_.-]+/"   # home do Linux  # padrao-ouro:ignorar
+    r"|(?<![\w/])/(Users|home)/[A-Za-z0-9_.-]+(?=[/\s\"'`)\]]|$)"  # home do macOS/Linux, com ou sem barra final  # padrao-ouro:ignorar
 )
 MARCA_IGNORAR = "padrao-ouro:ignorar"
 
