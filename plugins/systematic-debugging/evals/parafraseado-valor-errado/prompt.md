@@ -6,4 +6,4 @@ max_turns: 3
 timeout_seconds: 180
 ---
 
-Essa função está devolvendo um valor totalmente diferente do que eu esperava, e eu não mexi em nada relacionado a ela.
+A função `calcular_total(pedido)` do meu sistema passou a devolver um valor totalmente diferente do esperado depois do deploy de ontem, mas eu não mexi em nada relacionado a ela. Antes de sair testando hipóteses no chute, quero entender a causa raiz.

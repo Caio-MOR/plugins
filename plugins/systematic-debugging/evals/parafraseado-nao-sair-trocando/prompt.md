@@ -6,4 +6,4 @@ max_turns: 3
 timeout_seconds: 180
 ---
 
-Antes de eu sair trocando linhas de código de qualquer jeito, quero entender por que isso realmente quebrou.
+Meu endpoint de checkout começou a lançar `TypeError: cannot read property 'total' of undefined` logo depois do último deploy, mas funcionava até ontem. Antes de eu sair trocando linhas de código de qualquer jeito, quero entender por que isso realmente quebrou.
