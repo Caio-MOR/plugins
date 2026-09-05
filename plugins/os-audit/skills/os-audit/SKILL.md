@@ -36,44 +36,70 @@ The second lens is *when context loads*:
 
 The audit checks that facts sit on the correct side (Check 6). A live number baked into a preloaded file WILL go stale (poisoning) while taxing every session (bloat). A standing rule buried in one project folder is invisible when it's needed (confusion).
 
+## Evidence, scope, and prior work
+
+Treat the audit as an evidence-backed walkthrough, not a scorecard. For every finding and every clean verdict, record:
+
+- the path or declared external system examined;
+- the reproducible method and its result (for example, `rg`, a directory listing, a parsed link, or a script's documented output);
+- whether the conclusion is **verified** or **inferred**, and why;
+- coverage: `inspected/total` when a total is known, or the explicit sampling rule and sample size when it is not.
+
+Use **UNKNOWN** when the available project evidence cannot establish an answer, and **N/A** when a check does not apply. Do not convert absence of evidence into a failure. A GREEN verdict means only that the stated scope was checked and clean; it does not certify uninspected files, external services, or future changes. Do not calculate or imply an overall numeric score.
+
 ## Step 0 — Prior report and recent evidence
 
 1. Look for earlier reports in `audits/os-audit-*.md`. If one exists, read the most recent. The final report must include a "Since last audit" section: what got fixed, what got worse, what's new.
-2. If any audit of this project ran within the last week (this skill, or another audit with saved findings), reuse its still-valid evidence and re-verify only what could have changed. Don't re-sweep the whole project to rediscover week-old findings.
+2. Prior evidence may be reused only when it has a source report, date, scope, method, and validity rationale. Name that provenance in the new report, state what could have changed, and re-verify those parts. Otherwise mark it UNKNOWN and inspect it afresh. Do not re-sweep unchanged, well-scoped evidence merely to recreate it.
 
 ## Execution
 
-For a large project (100+ folders), fan out one Explore subagent per check below, giving each the check's instructions verbatim plus the project root, then merge their reports. For a small project, run the checks yourself in order.
+Run the checks in order, or use bounded parallel work when it reduces elapsed time and the results can be merged without hiding gaps. Set a deadline and cancellation point for any delegated work. Fan-out is appropriate when the checks are independent and each result can be verified; it is not categorically unsafe.
 
-**If there is no operating manual and no indexes at all:** that is itself the number-one finding. Report Routing and Index checks as RED with "no routing layer exists: your agent is navigating by guesswork," recommend creating a CLAUDE.md router first, and continue with checks 3-5 (they don't need a manual).
+```mermaid
+flowchart LR
+  A[Set scope and evidence plan] --> B[Inspect routing and indexes]
+  B --> C[Inspect feeds, hygiene, and context]
+  C --> D[Walk three retrieval probes]
+  D --> E[Check applicable workflow graphs]
+  E --> F[Report evidence, coverage, findings, and unknowns]
+```
+
+The graph describes this audit's normal chain. If the project is complex, branch count is only a heuristic: judge actual decision complexity, duplicated logic, and whether the routes remain retrievable.
+
+**If there is no operating manual and no indexes at all:** report the absence as a verified routing limitation, with the directories inspected and the retrieval impact demonstrated by probes where possible. Severity depends on whether important material could actually be retrieved through another declared route; do not assume RED solely from a missing conventional file. Continue with applicable checks.
+
+### Retrieval walkthroughs
+
+Perform three realistic retrieval probes through routes actually declared by the project before assigning a routing verdict. Choose questions that a user could plausibly ask, such as where to find a current standing rule, a recent artifact, or the local pointer to a live source of truth. For each, record the question, each declared route/path followed, the answer reached or missing, and the method/evidence; classify it PASS, FAIL, or UNKNOWN. These are auditor walkthroughs. Do not claim fresh-agent testing unless an isolated, newly started agent performed the probe and its setup is recorded.
 
 ### Check 1 — Routing integrity ("does everything it points to exist?")
 
-1. Read the operating manual (CLAUDE.md, CLAUDE.local.md, AGENTS.md, or equivalent). Extract every path, folder, and file it references, including routing tables. Verify each exists on disk. A routing rule that points at a missing path means the agent confidently walks into a wall.
-2. Reverse direction: list top-level directories and compare against the manual. Flag real, active directories the routing map doesn't mention. Unmapped = invisible to a fresh session.
+1. Read the operating manual (CLAUDE.md, CLAUDE.local.md, AGENTS.md, or equivalent). Extract every path, folder, and file it references, including routing tables. Verify each against the repository's route contract where one is declared. The absence of an optional, machine-local, generated, or intentionally private path is not automatically a defect. A required route that is unavailable and demonstrably prevents the declared retrieval can fail; when requiredness or availability cannot be established, report UNKNOWN.
+2. Reverse direction: list top-level directories and compare against the manual. A real, active directory omitted from the map is a finding only when a realistic retrieval probe cannot locate it through another declared route. Optional, generated, machine-local, and intentionally private paths are not failures simply because they are absent or omitted.
 3. Misroutes count too: a rule that points at a place that exists but is NOT where the current data actually lives is worse than a dead path, because nothing errors.
 4. Spot-check hardcoded paths inside `.claude/skills/*/SKILL.md` and `.claude/agents/*.md`. Skills fail silently on dead paths.
 5. If a persistent memory system exists (a MEMORY.md index or memory folder): verify each index entry resolves to a file, and flag memory files missing from the index.
 
 ### Check 2 — Index truth ("do the indexes match the disk?")
 
-1. Find every index file: `_index*.md`, `INDEX.md`, catalog sections in READMEs, hot-cache/summary files. For each, diff its entries against the actual directory contents, both directions: rows with no folder (phantoms) and folders with no row (orphans).
+1. Find every index file: `_index*.md`, `INDEX.md`, catalog sections in READMEs, hot-cache/summary files. For each, identify its declared scope and intentional exclusions before comparing entries with disk contents. Diff both directions only within that scope: rows with no expected folder (phantoms) and expected folders with no row (orphans). A curated or partial index may intentionally omit content; if its scope is ambiguous, report coverage and verdict as UNKNOWN rather than treating omitted folders as orphans.
 2. Check any counts the index claims ("55 folders", "page_count: 50") against reality.
-3. Check any freshness claims ("Recently Active", "updated weekly", `updated:` frontmatter) against real file dates. An index that says "last 14 days" but whose newest entry is a month old is actively lying to the agent.
+3. Check explicit freshness claims ("Recently Active", `updated:` frontmatter, or a documented cadence) against content dates and appropriate source metadata. Do not infer a cadence from a filename pattern or mtime alone. An unsubstantiated cadence is UNKNOWN, not proof that an index is lying.
 
 ### Check 3 — Freshness ("are the data feeds current?")
 
-1. Identify every recurring data source: transcript pulls, meeting ingests, API exports, wikis, analytics dumps, anything with dated files or a fetch/refresh script. For each, find the newest dated artifact and compare against the feed's natural cadence (weekly meetings should have last week's file; daily pulls, yesterday's).
+1. Identify each recurring data source: transcript pulls, meeting ingests, API exports, wikis, analytics dumps, or a documented fetch/refresh script. Record a separate freshness row for each feed. Compare it only with an explicitly declared cadence or reliable source metadata; otherwise use UNKNOWN for cadence and freshness.
 2. Classify each feed:
    - **FRESH** — within one cycle.
    - **DRIFTING** — one cycle behind.
-   - **FROZEN** — more than one cycle behind, and the OS still implies it's current. Estimate what's missing ("3 weekly syncs and one major event absent").
-   - **RETIRED?** — more than ~2 months dead. Don't assume it's broken; ask the user whether they stopped on purpose. If retired, the fix is updating the OS so it stops implying the feed is current, not reviving it.
+   - **FROZEN** — more than one documented cycle behind, and the OS still implies it is current. Estimate what is missing only when dates and cadence support the estimate.
+   - **RETIRED?** — an apparently inactive feed whose lifecycle is not documented. Do not assume it is broken; ask the user whether it stopped intentionally. If retired, the fix is updating the OS so it stops implying the feed is current, not reviving it.
    - **ON-DEMAND** — feeds with no natural cadence (per-video, per-request). Not stale by definition; note the last run and move on.
 3. **Check both layers: pulled vs ingested.** Data can be fresh in the raw layer (files pulled to disk) and frozen in the knowledge layer (never summarized/indexed where the agent actually looks). Report each feed's raw date AND its ingested date when the project has that split. The gap between them is un-queryable knowledge.
-4. Check hot-cache / summary files (the small files loaded every session): are their key numbers and active threads dated within their claimed refresh cycle?
+4. Check hot-cache / summary files (the small files loaded every session): are their key numbers and active threads dated within their claimed refresh cycle? A local artifact can establish only local snapshot freshness; it cannot prove the health, availability, or completeness of an external system.
 5. **Memory staleness:** scan memory notes for time-dimensioned facts: counters ("107 left"), snapshots ("425K members"), statuses ("still open", "in progress"), and future-tense events that are now past. Flag the provably stale ones.
-6. Report the single date that matters most: "your AIOS's knowledge effectively ends on YYYY-MM-DD," using the ingested layer, not the raw layer.
+6. Do not collapse feeds into one misleading "knowledge ends" date. Report per-feed raw and ingested dates, their evidence, and any known retrieval dependency. State UNKNOWN where the ingestion relationship cannot be established.
 
 ### Check 4 — Bloat, duplication, and organization ("does anything live twice, or in the wrong place, or for no reason?")
 
@@ -82,7 +108,7 @@ For a large project (100+ folders), fan out one Explore subagent per check below
 3. Scratch contamination: temp files, API response dumps, `_tmp_*`, `__pycache__`, empty stub files or folders sitting inside the knowledge tree where a blind search will treat them as knowledge.
 4. Always-loaded weight: word-count the files loaded every session (operating manual, memory index, hot cache). Flag growth; every extra line here taxes every future session.
 5. Rule violations: if the manual states placement rules ("all X goes in one folder per Y"), find violators.
-6. **Root hygiene.** The project root should read like a table of contents: folders, the operating manual, a README, and almost nothing else. Every loose file at root is a finding. Classify each by role and recommend a home that ALREADY EXISTS in the project:
+6. **Root hygiene.** Inspect loose root files by role. Valid root configuration, entrypoint, license, and documentation files are expected and are not findings. Flag a file only when its placement impairs retrieval, violates a declared contract, creates duplication, or is demonstrably stale/scratch. When recommending a home, prefer one that already exists:
    - temp/scratch output (API response dumps, one-session JSON, stray exports) → the archive or tmp folder
    - reusable assets (logos, face cutouts, brand images) → the assets/brand folder
    - media sources (recordings, renders) → their project's folder, or the archive if the project shipped
@@ -97,7 +123,7 @@ For a large project (100+ folders), fan out one Explore subagent per check below
    - **If it is not a git repo:** scan directly for credential-looking files and exported personal data sitting in the knowledge tree, flag them, and note as a finding that the project has no version control (no history, no rollback, and no ignore layer for the day it becomes a repo).
 2. Dead capabilities: skill folders whose file isn't exactly `SKILL.md`, missing or empty frontmatter descriptions, agents referencing models or paths that don't exist. These never load and never error.
 3. Orphans: agent-memory folders with no matching agent, empty directories, 0-byte files.
-4. Cadence reality check: do any hooks or scheduled jobs actually exist, or is every "recurring" process manual? Manual-only cadence is the root cause of most Check-3 freezes; say so explicitly if found.
+4. Cadence reality check: inspect declared hooks or scheduled jobs when the project claims they exist. Manual operation is not itself a defect; do not infer it is the root cause of a freshness issue without evidence. Local configuration also cannot prove that a scheduler or external integration ran successfully.
 
 ### Check 6 — Context placement ("is everything on the right side of the expertise/situational line?")
 
@@ -112,9 +138,9 @@ Applies when the project documents automations as flow graphs (Mermaid in `workf
 
 1. **Coverage & truth:** every automation/workflow doc should carry its graph. Flag missing graphs, and graphs that contradict the prose or the scripts they describe (a branch, fallback, or data source that exists in code but not in the graph, or vice versa). A stale graph is worse than none [poisoning].
 2. **Wait test:** walk each graph's sequential edges asking "does this step need the RESULT of the previous one?" Flag false dependencies — steps documented (or executed) sequentially that are provably independent. Report only the ones with real payoff (long-running steps, external calls), not micro-optimizations.
-3. **Loop guardrails:** every loop (retry, generate→evaluate→iterate, polling) must have an explicit iteration cap. A loop with no cap is a RED finding regardless of failure-mode tags — it is the "infinite loop burns money overnight" scenario.
-4. **Branch guardrails:** any skill/flow routing to more than ~5 branches is an over-engineering flag; recommend splitting.
-5. **Fan-out guardrails:** parallel fan-outs (subagents, concurrent jobs) should converge on a node that verifies all legs delivered (silent-failure protection), and should only exist where an individual leg's error is cheap.
+3. **Loop guardrails:** retries, generate→evaluate→iterate cycles, and polling need a stopping condition appropriate to the operation. An explicit iteration cap is useful, but a deadline, cancellation signal, or state-based termination can be sufficient when it is observable and bounded.
+4. **Branch guardrails:** use route count as a heuristic, not a rule. Flag a flow when its actual decision complexity, duplicate routing logic, or unclear fallback behavior makes it unreliable or hard to retrieve.
+5. **Fan-out guardrails:** parallel fan-outs should converge on a node that accounts for delivered, failed, cancelled, or timed-out legs. Judge whether parallel work is appropriate from dependency, cost, and failure handling; do not impose a blanket limitation based on a leg being inexpensive.
 
 Tag findings 1 with the standard failure modes; findings 2-5 are operational (tag `[graph]`) and get their own subsection in the report.
 
@@ -125,17 +151,20 @@ Print in chat, then save to `audits/os-audit-YYYY-MM-DD.md` (create `audits/` if
 ```
 # OS Audit — {date}
 
-**Knowledge current through: {the effective staleness date from Check 3, ingested layer}**
+**Freshness scope: {per-feed evidence is reported below; do not infer a single project-wide currency date}**
 
 | Check | Verdict | Worst finding |
 |---|---|---|
-| Routing integrity  | GREEN/YELLOW/RED | ... |
-| Index truth        | GREEN/YELLOW/RED | ... |
-| Freshness          | GREEN/YELLOW/RED | ... |
-| Bloat/duplication  | GREEN/YELLOW/RED | ... |
-| Hygiene            | GREEN/YELLOW/RED | ... |
-| Context placement  | GREEN/YELLOW/RED | ... |
-| Graph health       | GREEN/YELLOW/RED/N/A | ... |
+| Routing integrity  | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+| Index truth        | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+| Freshness          | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+| Bloat/duplication  | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+| Hygiene            | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+| Context placement  | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+| Graph health       | GREEN/YELLOW/RED/UNKNOWN/N/A | ... |
+
+## Scope and evidence
+{For each check: inspected/total or sampling rule; paths/systems inspected; methods and results; verified or inferred conclusions; reused evidence with source report, date, scope, and validity rationale. State UNKNOWN and N/A explicitly. GREEN means clean only within this recorded scope.}
 
 ## Failure-mode exposure
 
@@ -145,6 +174,7 @@ Print in chat, then save to `audits/os-audit-YYYY-MM-DD.md` (create `audits/` if
 | Bloat (too much)             | HIGH/MED/LOW | ... |
 | Confusion (wrong or missing) | HIGH/MED/LOW | ... |
 | Clash (contradictory)        | HIGH/MED/LOW | ... |
+| UNKNOWN exposure             | UNKNOWN/none within verified scope | {checks or coverage gaps that prevent an exposure conclusion} |
 
 ## Since last audit
 {only if a prior report exists: fixed / worse / new. Omit on first run.}
@@ -152,10 +182,11 @@ Print in chat, then save to `audits/os-audit-YYYY-MM-DD.md` (create `audits/` if
 ## What would make your agent wrong-answer you today
 {2-4 bullets: the findings that cause "it says it isn't there but it is" or confidently stale answers}
 
+## Retrieval probes
+{Perform three realistic auditor walkthroughs through actual declared routing. For each record: question | declared route/path followed | answer reached or missing | evidence/method | PASS/FAIL/UNKNOWN. Examples: locate the current operating rule, find a recent artifact, and identify the source of truth for a live fact. These are auditor walkthroughs, not fresh-agent tests. Call a probe an actual fresh-agent test only if an isolated, newly started agent performed it, and record that setup.}
+
 ## Findings by check
-{concise bullets per check; every finding names a concrete path AND ends with its
-failure-mode tag: [poisoning] [bloat] [confusion] [clash]. Include the feed
-freshness table: feed | raw date | ingested date | cadence | verdict | what's missing.}
+{Concise bullets per check. Every finding names a concrete path or external system, method/result, verified/inferred status, coverage, and relevant failure-mode tag: [poisoning] [bloat] [confusion] [clash]. Include the feed table: feed | raw date | ingested date | cadence evidence | verdict | what is known missing/UNKNOWN.}
 
 ## Questions for you
 {feeds classified RETIRED? — "did you stop this on purpose?" — and anything else only the owner can answer}
@@ -167,14 +198,14 @@ freshness table: feed | raw date | ingested date | cadence | verdict | what's mi
 - Batch D — durability (hooks/crons/rituals so it can't silently freeze again)
 ```
 
-Verdict rules: RED = at least one finding that would cause wrong answers today (frozen pipeline, lying index, dead or misrouted routing rule, tracked secret, stale fact in an always-loaded file). YELLOW = drift that will get there (unindexed folders, duplicates, bloat, missing precedence rule). GREEN = checked and clean. Feeds the user confirms as retired don't count toward RED once the OS stops implying they're current. Be honest; a first run on a real, used AIOS should rarely be all green.
+Verdict rules: RED = verified evidence of a finding that would cause wrong answers today (for example, a frozen documented pipeline still represented as current, a misrouted declared route, a tracked secret, or a stale fact in an always-loaded file). YELLOW = verified or clearly labeled inferred drift that needs attention but is not shown to cause wrong answers today. GREEN = the recorded scope was checked and clean. Use UNKNOWN or N/A where evidence is insufficient or the check does not apply. Feeds the user confirms as retired do not count toward RED once the OS stops implying they are current.
 
-Exposure rules: a mode is HIGH when a RED finding feeds it, MED when only YELLOW findings feed it, LOW when nothing does. The exposure table is the audit's teaching moment: it tells the user not just what's broken but *how it will bite*.
+Exposure rules: a mode is HIGH when a RED finding feeds it, MED when only YELLOW findings feed it, and LOW only when the relevant recorded scope is verified clean. Record UNKNOWN exposure for checks, coverage gaps, or external dependencies that prevent a conclusion. Retain partial coverage and UNKNOWN entries even when another finding supports HIGH or MED for the same mode. The exposure table is the audit's teaching moment: it tells the user not just what's broken but *how it will bite*.
 
 ## Notes
 
 - Do not fix anything during the audit, even trivial things. Report first; the fix list is the deliverable.
 - Prefer dated filenames and content dates for freshness. File mtimes are the weakest signal: bulk git operations (clone, checkout, big commits) AND cloud-sync tools (OneDrive, Dropbox, Google Drive) can touch every file at once. If many mtimes cluster on one timestamp, verify with content or git log before calling anything "active."
-- A stale local snapshot of data whose live source of truth is an external tool (a task manager, a CRM) is a labeling problem, not a freshness problem. The fix is marking it "snapshot — live data lives in X," not endless re-syncing.
+- A stale local snapshot of data whose live source of truth is an external tool (a task manager, a CRM) is usually a labeling problem, not proof that the external source is unhealthy. The fix may be marking it "snapshot — live data lives in X," rather than claiming a local check verifies live data.
 - Suggest re-running quarterly, or after any big reorganization. The "Since last audit" section is the payoff for saving dated reports.
 - If the project also has the AIS-OS kit's `/audit` skill, that's the companion: `/audit` scores whether the AIOS is built right (Four Cs, structural); `/os-audit` checks whether it's still true. Run both for the full picture. If `/audit` isn't installed, skip the reference; this skill stands alone.
