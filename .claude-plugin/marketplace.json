@@ -21,7 +21,7 @@
       "name": "os-audit",
       "source": "./plugins/os-audit",
       "description": "Auditoria read-only de drift, desatualização e organização de um projeto Claude Code (AIOS).",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ]
 }
