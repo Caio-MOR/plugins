@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -127,6 +128,12 @@ def test_parse_caso_com_frontmatter_yaml_invalido_reprova(tmp_path):
     )
     with pytest.raises(eval_runner.ErroCasoMalFormado, match="YAML inválido"):
         eval_runner.parse_caso(case_dir)
+
+
+@pytest.mark.parametrize("frontmatter", ["somente texto\n", "- item-1\n- item-2\n"])
+def test_parse_frontmatter_nao_mapa_reprova(frontmatter):
+    with pytest.raises(eval_runner.ErroCasoMalFormado, match="precisa ser um mapa"):
+        eval_runner.parse_frontmatter(f"---\n{frontmatter}---\nprompt\n", "prompt.md")
 
 
 def test_parse_caso_com_regex_incompilavel_reprova(tmp_path):
@@ -317,3 +324,121 @@ def test_docstring_declara_copia_canonica_e_nomeia_o_espelho():
     assert "**Espelho**: `Caio-MOR/template-cockpit`" in doc, (
         "docstring não rotula o espelho com owner/repo"
     )
+
+
+# ---------------------------------------------------------------------------
+# Segurança, proveniência e validação de resultados
+
+
+def test_ambiente_seguro_exclui_segredos_e_preserva_runtime():
+    ambiente = {
+        "PATH": "/bin", "HOME": "/tmp/test-home", "CLAUDE_CONFIG_DIR": "/tmp/test-home/.claude",
+        "ANTHROPIC_API_KEY": "secret", "AWS_SECRET_ACCESS_KEY": "secret",
+        "DATABASE_URL": "postgres://production", "GITHUB_TOKEN": "secret",
+    }
+    seguro = eval_runner.ambiente_seguro(ambiente)
+    assert seguro["PATH"] == "/bin"
+    assert seguro["HOME"] == "/tmp/test-home"
+    assert seguro["CLAUDE_CONFIG_DIR"] == "/tmp/test-home/.claude"
+    assert not {"ANTHROPIC_API_KEY", "AWS_SECRET_ACCESS_KEY", "DATABASE_URL", "GITHUB_TOKEN"} & seguro.keys()
+    assert seguro["DISABLE_AUTOUPDATER"] == "1"
+
+
+def test_subprocesso_recebe_ambiente_sanitizado(monkeypatch, tmp_path):
+    recebido = {}
+
+    def fake_run(*args, **kwargs):
+        recebido.update(kwargs)
+        return eval_runner.subprocess.CompletedProcess(args[0], 0, "{}\n", "")
+
+    monkeypatch.setattr(eval_runner.subprocess, "run", fake_run)
+    monkeypatch.setattr(eval_runner, "ambiente_seguro", lambda: {"PATH": "/safe"})
+    eval_runner._rodar_subprocesso(["claude", "-p", "oi"], tmp_path, 5)
+    assert recebido["env"] == {"PATH": "/safe"}
+    assert recebido["cwd"] == str(tmp_path.resolve())
+
+
+def test_rodar_caso_copia_plugin_para_cwd_descartavel(monkeypatch, tmp_path):
+    plugin = tmp_path / "plugin"
+    plugin.mkdir()
+    (plugin / "plugin.md").write_text("original", encoding="utf-8")
+    caso = {"nome": "caso", "tags": [], "runs": 1, "max_turns": 1,
+            "timeout_seconds": 5, "prompt": "oi", "graders": [
+                {"type": "tool_used", "tool": "Skill", "input_match": ".*", "min": 1, "_arquivo": "x.md"}]}
+    usados = []
+
+    def fake_executar(*args, **kwargs):
+        caminho = kwargs.get("plugin_dir", args[-1])
+        usados.append(caminho)
+        (caminho / "nao-vaza.txt").write_text("somente cópia", encoding="utf-8")
+        return [{"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Skill", "input": {"skill": "x"}}]}}]
+
+    monkeypatch.setattr(eval_runner, "executar_run", fake_executar)
+    assert eval_runner.rodar_caso("claude", caso, plugin, None, None)["ok"] == 1
+    assert usados and usados[0] != plugin
+    assert not (plugin / "nao-vaza.txt").exists()
+
+
+def _resultado_de_teste(*, finished_at: str | None = None, runs: int = 1) -> dict:
+    agora = datetime.now(timezone.utc)
+    return {"schema": eval_runner.RESULTADO_SCHEMA, "runner_version": eval_runner.RUNNER_VERSAO,
+            "started_at": (agora - timedelta(seconds=2)).isoformat().replace("+00:00", "Z"),
+            "finished_at": finished_at or agora.isoformat().replace("+00:00", "Z"),
+            "git": {"commit": "a" * 40, "dirty": False},
+            "case_inventory": [{"case_key": "skill/caso", "name": "caso", "plugin_or_skill": "skill",
+                                "tags": [], "expected_runs": runs, "grader_count": 1}],
+            "cases": [{"case_key": "skill/caso", "name": "caso", "plugin_or_skill": "skill", "tags": [],
+                       "runs": [{"ok": True, "infra": None, "graders": []} for _ in range(runs)],
+                       "ok": runs, "total": runs, "todos_infra": False}],
+            "aggregates": {"total_casos": 1, "casos_ok": 1, "threshold": 1.0}}
+
+
+def test_validar_resultado_exige_cobertura_completa_e_frescura():
+    assert eval_runner.validar_resultado(_resultado_de_teste()) == []
+    incompleto = _resultado_de_teste(runs=2)
+    incompleto["cases"][0]["runs"].pop()
+    incompleto["cases"][0]["total"] = 1
+    assert any("incompleto" in erro for erro in eval_runner.validar_resultado(incompleto))
+    velho = datetime.now(timezone.utc) - timedelta(days=2)
+    resultado_velho = _resultado_de_teste(finished_at=velho.isoformat().replace("+00:00", "Z"))
+    resultado_velho["started_at"] = (velho - timedelta(seconds=2)).isoformat().replace("+00:00", "Z")
+    assert any("antigo" in erro for erro in eval_runner.validar_resultado(resultado_velho))
+
+
+@pytest.mark.parametrize("campo, valor", [
+    ("case_inventory", ["não é objeto"]), ("cases", ["não é objeto"]),
+    ("case_inventory", [{"case_key": ["lista não hashable"]}]),
+    ("cases", [{"case_key": {"objeto": "não hashable"}}]),
+])
+def test_validar_resultado_reprova_chave_de_caso_malformada_sem_typeerror(campo, valor):
+    resultado = _resultado_de_teste()
+    resultado[campo] = valor
+    erros = eval_runner.validar_resultado(resultado)
+    assert erros
+    assert any(campo in erro for erro in erros)
+
+
+def test_caminho_saida_nao_pode_escapar_raiz(tmp_path):
+    with pytest.raises(eval_runner.ErroInfra, match="dentro da raiz"):
+        eval_runner._caminho_saida_seguro(str(tmp_path.parent / "fora.json"), tmp_path)
+
+
+def test_main_gera_resultado_com_schema_inventario_e_proveniencia(monkeypatch, tmp_path):
+    skills_dir = tmp_path / ".claude" / "skills" / "skill-x"
+    skills_dir.mkdir(parents=True)
+    (skills_dir / "SKILL.md").write_text("---\nname: skill-x\n---\n", encoding="utf-8")
+    _criar_caso_minimo(tmp_path / "evals" / "skill-x" / "caso-1")
+    saida = tmp_path / "results.json"
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(eval_runner.shutil, "which", lambda nome: "claude")
+    monkeypatch.setattr(eval_runner, "executar_run", lambda *args: [{"type": "assistant", "message": {"content": [
+        {"type": "tool_use", "name": "Skill", "input": {"skill": "x"}}]}}])
+    assert eval_runner.main(["--skills-dir", str(skills_dir.parent), "--json", str(saida)]) == 0
+    resultado = json.loads(saida.read_text(encoding="utf-8"))
+    assert resultado["schema"] == eval_runner.RESULTADO_SCHEMA
+    assert resultado["runner_version"] == eval_runner.RUNNER_VERSAO
+    assert resultado["git"].keys() == {"commit", "dirty"}
+    assert resultado["case_inventory"][0]["case_key"] == "skill-x/caso-1"
+    assert eval_runner.validar_resultado(resultado) == []
+    assert eval_runner.main(["--validate-json", str(saida)]) == 0
