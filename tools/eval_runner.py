@@ -67,13 +67,13 @@ from pathlib import Path
 
 import yaml
 
-RUNNER_VERSAO = "1.1.0"  # ver "Cópia canônica" na docstring: sobe junto da propagação
+RUNNER_VERSAO = "1.1.1"  # ver "Cópia canônica" na docstring: sobe junto da propagação
 RESULTADO_SCHEMA = "eval-runner-result/v1"
 TETO_CASOS_INFRA_CONSECUTIVOS = 3  # loop-engineering: nunca insistir além disso
 RE_FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 MARCADORES_AUTH = ("not logged in", "authentication_failed", "please run /login")
 ENV_ALLOWLIST = frozenset({
-    "PATH", "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "SystemRoot", "WINDIR",
+    "PATH", "HOME", "USER", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "SystemRoot", "WINDIR",
     "TEMP", "TMP", "TMPDIR", "PATHEXT", "ComSpec", "SHELL", "LANG", "LC_ALL",
     "LC_CTYPE", "TERM", "NO_COLOR", "CLAUDE_CONFIG_DIR", "DISABLE_AUTOUPDATER",
     "DISABLE_TELEMETRY", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",

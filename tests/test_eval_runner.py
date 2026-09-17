@@ -333,12 +333,14 @@ def test_docstring_declara_copia_canonica_e_nomeia_o_espelho():
 def test_ambiente_seguro_exclui_segredos_e_preserva_runtime():
     ambiente = {
         "PATH": "/bin", "HOME": "/tmp/test-home", "CLAUDE_CONFIG_DIR": "/tmp/test-home/.claude",
+        "USER": "nonsecret-user",
         "ANTHROPIC_API_KEY": "secret", "AWS_SECRET_ACCESS_KEY": "secret",
         "DATABASE_URL": "postgres://production", "GITHUB_TOKEN": "secret",
     }
     seguro = eval_runner.ambiente_seguro(ambiente)
     assert seguro["PATH"] == "/bin"
     assert seguro["HOME"] == "/tmp/test-home"
+    assert seguro["USER"] == "nonsecret-user"
     assert seguro["CLAUDE_CONFIG_DIR"] == "/tmp/test-home/.claude"
     assert not {"ANTHROPIC_API_KEY", "AWS_SECRET_ACCESS_KEY", "DATABASE_URL", "GITHUB_TOKEN"} & seguro.keys()
     assert seguro["DISABLE_AUTOUPDATER"] == "1"
